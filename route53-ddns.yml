@@ -5,13 +5,13 @@ Description: Serverless dynamic DNS & device discovery service for ipv4 & ipv6
 Parameters:
   route53ZoneName:
     Type: String
-    Default: 'yourdomain.net'
+    Default: 'borj.org'
     Description: "Required: Route53 Zone, either existing or name to be created. -- Must not end in '.' -- If it's an existing zone, it must match the zone id passed in route53ZoneId."
     #AllowedPattern: ^([a-zA-Z0-9-].)+[a-zA-Z0-9-]$  #commented out to support unicode
     
   route53ZoneId:
     Type: String
-    Default: ''
+    Default: 'Z09959211X56WXTC0U9R0'
     Description: Populate to use existing zone.  ie 'Z1FXLQ1OABKR4O' Must be from the same account. --  If omitted, a new zone will be created.  -- If supplied, the ddns system will get IAM permissions to modify existing zone entries.
 
   defaultTtl:
