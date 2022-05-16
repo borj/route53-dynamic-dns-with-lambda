@@ -12,13 +12,13 @@
 ## Cache file settings
 ## cacheFileDir must end in /
 ## Recommend /tmp/ddns_cache/ to clear cache on restart
-cacheFileDir="/tmp/ddns_cache/" 
+cacheFileDir="/tmp/ddns_cache/"
 cacheFileExt=".ddns.tmp"
 ## Set default to ipv4, can be overridden by --ip-version
 ipVersion="ipv4"
 
 fail () {
-    echo "$(basename $0): $1"
+    echo "$(basename "$0"): $1"
     exit 1
 }
 
@@ -62,7 +62,7 @@ Options:
         Not yet fully implemented.  Will allow a single host to set records for all hosts on
         a network segment.
         Not required.
-        No argument.	
+        No argument.
 EOF
 }
 
@@ -73,7 +73,7 @@ while [[ $# -ge 1 ]]; do
         -h|--help)
             help
             exit 0
-            ;;
+        ;;
         --hostname)
             if [ -z "$2" ]; then
                 fail "\"$1\" argument needs a value."
@@ -86,73 +86,73 @@ while [[ $# -ge 1 ]]; do
                 myHostname+='.'
             fi
             shift
-            ;;
+        ;;
         --secret)
             if [ -z "$2" ]; then
                 fail "\"$1\" argument needs a value."
             fi
             mySharedSecret=$2
             shift
-            ;;
+        ;;
         --url)
             if [ -z "$2" ] ; then
                 fail "\"$1\" argument needs a value."
             fi
             if [[ "$2" == "https://"* ]]; then
-            	myAPIURL=$2
+                myAPIURL=$2
             else
-            	myAPIURL="https://"$2
+                myAPIURL="https://"$2
             fi
             shift
-            ;;
+        ;;
         --ip-source)
             if [ -z "$2" ] ; then
                 fail "\"$1\" argument needs a value."
             fi
             ipSource=$2
             shift
-            ;;
+        ;;
         --cache)
             if [ -z "$2" ] ; then
                 fail "\"$1\" argument needs a value."
             fi
             if [[ $2 =~ [0-9]+ ]]; then
-				cacheTtl=$2
-				cache=true
-            	if [ ! -d $cacheFileDir ]; then mkdir -p $cacheFileDir ; fi
+                cacheTtl=$2
+                cache=true
+                if [ ! -d $cacheFileDir ]; then mkdir -p $cacheFileDir ; fi
             else
-				fail "\"$1\" argument must be an integer reflecting ttl in minutes."
+                fail "\"$1\" argument must be an integer reflecting ttl in minutes."
             fi
             shift
-            ;;
+        ;;
         --ip-version)
             if [ -z "$2" ] ; then
                 fail "\"$1\" argument needs a value."
             fi
-			ipVersion=$2
+            ipVersion=$2
             shift
-            ;;
+        ;;
         --list-hosts)
-			listHosts=true
+            listHosts=true
             shift
-            ;;
+        ;;
         --api-key)
             if [ -z "$2" ] ; then
                 fail "\"$1\" argument needs a value."
             fi
-			apiKey="$2"
+            apiKey="$2"
             shift
-            ;;
+        ;;
         *)
             fail "Unrecognized option $1."
-            ;;
+        ;;
     esac
     shift
 done
 
 # If the script is called with no arguments, show an instructional error message.
 if [ -z "$myHostname" ] || [ -z "$mySharedSecret" ] || [ -z "$myAPIURL" ]; then
-    echo "$(basename $0): Required arguments missing."
+    echo "$(basename "$0"): Required arguments missing."
     help
     exit 1
 fi
@@ -160,67 +160,67 @@ fi
 cacheFile="$cacheFileDir$myHostname$ipVersion$cacheFileExt"
 
 ## get public IP from reflector to generate hash &/or set IP
-myPublicIP=$(curl -q --$ipVersion -s  -H "x-api-key: $apiKey" "$myAPIURL?mode=get" | jq -r '.return_message //empty')
+myPublicIP=$(curl -q --"$ipVersion" -s  -H "x-api-key: $apiKey" "$myAPIURL?mode=get" | jq -r '.return_message //empty')
 
 if [ "$ipSource" = "public" ] || [ -z "$ipSource" ]; then
     myIp=$myPublicIP
     [ -z "$myIp" ] && fail "Couldn't find your public IP"
-## match interface formats eth0 eth0:1 eth0.1
-elif [[ $ipSource =~ ^[0-9a-z]+([:.][0-9]+){0,2}$ ]]; then
-	if [ "$ipVersion" = "ipv4" ]; then
-    	myIp="$(ifconfig "$ipSource" |egrep 'inet\ '|egrep -o '((1?[0-9][0-9]?|2[0-4][0-9]|25[0-5])\.){3}(1?[0-9][0-9]?|2[0-4][0-9]|25[0-5])' |head -1)"
-    	[ -z "$myIp" ] && fail "Couldn't get the IP of $ipSource"
-	elif [ "$ipVersion" == "ipv6" ]; then
-    	myIp="$(ifconfig "$ipSource" |egrep 'inet6' |egrep -v 'fe80'|egrep -v 'temporary'|egrep -io '([A-F0-9]{1,4}:){7}[A-F0-9]{1,4}')"
-		[ -z "$myIp" ] && fail "Couldn't get the IP of $ipSource"
+    ## match interface formats eth0 eth0:1 eth0.1
+    elif [[ $ipSource =~ ^[0-9a-z]+([:.][0-9]+){0,2}$ ]]; then
+    if [ "$ipVersion" = "ipv4" ]; then
+        myIp="$(ifconfig "$ipSource" |egrep 'inet\ '|egrep -o '((1?[0-9][0-9]?|2[0-4][0-9]|25[0-5])\.){3}(1?[0-9][0-9]?|2[0-4][0-9]|25[0-5])' |head -1)"
+        [ -z "$myIp" ] && fail "Couldn't get the IP of $ipSource"
+        elif [ "$ipVersion" == "ipv6" ]; then
+        myIp="$(ifconfig "$ipSource" |egrep 'inet6' |egrep -v 'fe80'|egrep -v 'temporary'|egrep -io '([A-F0-9]{1,4}:){7}[A-F0-9]{1,4}')"
+        [ -z "$myIp" ] && fail "Couldn't get the IP of $ipSource"
     else
-    	fail "Interface source called, but ipVersion is not set." ## This should never happen.  Defaults set to ipv4 at top of script
+        fail "Interface source called, but ipVersion is not set." ## This should never happen.  Defaults set to ipv4 at top of script
     fi
-## match ipv4
-elif [[ "$ipSource" =~ ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$ ]]; then
+    ## match ipv4
+    elif [[ "$ipSource" =~ ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$ ]]; then
     myIp="$ipSource"
-## match ipv6
-elif [[ "$ipSource" =~ ^[0-9A-Fa-f:]+$ ]]; then
-	myIp="$ipSource"
+    ## match ipv6
+    elif [[ "$ipSource" =~ ^[0-9A-Fa-f:]+$ ]]; then
+    myIp="$ipSource"
 else
     fail "Invalid --ip-source argument. Check help."
 fi
-if [ "$cache" = "true" ] && [ -f "$cacheFile" ] && [ `find $cacheFile -mmin -"$cacheTtl" | grep '.*'` ]; then
-    cached_myIp=$(cat $cacheFile)
+if [ "$cache" = "true" ] && [ -f "$cacheFile" ] && [ $(find "$cacheFile" -mmin -"$cacheTtl" | grep '.*') ]; then
+    cached_myIp=$(cat "$cacheFile")
     if [ "$cached_myIp" = "$myIp" ]; then
-        echo "$(basename $0): Found a cached update."
+        echo "$(basename "$0"): Found a cached update."
         exit 0
     fi
 fi
 
-echo "$(basename $0): Updating $myHostname to IP $myIp"
+echo "$(basename "$0"): Updating $myHostname to IP $myIp"
 
 ## Build the hashed token
 ## Check for shasum (OSX) vs sha256sum (Linux) then execute the appropriate command.
 if command -v shasum > /dev/null 2>&1 ; then
-	myHash=$(printf "$myPublicIP$myHostname$mySharedSecret" | shasum -a 256 | awk '{print $1}')
-elif command -v sha256sum  > /dev/null 2>&1 ; then
-	myHash=$(printf "$myPublicIP$myHostname$mySharedSecret" | sha256sum | awk '{print $1}')
+    myHash=$(printf "$myPublicIP$myHostname$mySharedSecret" | shasum -a 256 | awk '{print $1}')
+    elif command -v sha256sum  > /dev/null 2>&1 ; then
+    myHash=$(printf "$myPublicIP$myHostname$mySharedSecret" | sha256sum | awk '{print $1}')
 else
-	fail "Neither shasum nor sha256sum executables were found on host."
+    fail "Neither shasum nor sha256sum executables were found on host."
 fi
 
 if [ "$listHosts" = "true" ]; then
-    reply=$(curl -q --$ipVersion -s -H "x-api-key: $apiKey" "$myAPIURL?mode=list_hosts&hostname=$myHostname&hash=$myHash")
-# Call the API in set mode to update Route 53
-elif [ "$listHosts" != "true" ] && [ "$ipSource" = "public" ]; then
-    reply=$(curl -q --$ipVersion -s -H "x-api-key: $apiKey" "$myAPIURL?mode=set&hostname=$myHostname&hash=$myHash")
+    reply=$(curl -q --"$ipVersion" -s -H "x-api-key: $apiKey" "$myAPIURL?mode=list_hosts&hostname=$myHostname&hash=$myHash")
+    # Call the API in set mode to update Route 53
+    elif [ "$listHosts" != "true" ] && [ "$ipSource" = "public" ]; then
+    reply=$(curl -q --"$ipVersion" -s -H "x-api-key: $apiKey" "$myAPIURL?mode=set&hostname=$myHostname&hash=$myHash")
 else
-    reply=$(curl -q --$ipVersion -s -H "x-api-key: $apiKey" "$myAPIURL?mode=set&hostname=$myHostname&hash=$myHash&internalIp=$myIp")
+    reply=$(curl -q --"$ipVersion" -s -H "x-api-key: $apiKey" "$myAPIURL?mode=set&hostname=$myHostname&hash=$myHash&internalIp=$myIp")
 fi
 
 if [ "$(echo "$reply" | jq -r '.return_status //empty')" == "success" ]; then
     if [ "$cache" = "true" ]; then
-        echo "$myIp" > $cacheFile
+        echo "$myIp" > "$cacheFile"
     fi
-    echo "$(basename $0): Request succeeded: $(echo "$reply"| jq -r '.return_message //empty')"
+    echo "$(basename "$0"): Request succeeded: $(echo "$reply"| jq -r '.return_message //empty')"
 else
-    echo "$(basename $0): Request failed: $(echo "$reply" | jq -r '.return_message //empty')"
+    echo "$(basename "$0"): Request failed: $(echo "$reply" | jq -r '.return_message //empty')"
     exit 1
 fi
 
